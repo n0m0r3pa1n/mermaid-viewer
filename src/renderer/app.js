@@ -139,11 +139,10 @@ const errorText = (err) => String(err?.message || err).trim();
 
 const fence = (code) => '```mermaid\n' + code.replace(/\s+$/, '') + '\n```';
 const boardCode = (codes) => codes.map(fence).join('\n\n') + '\n';
-const boardBlocks = (code) => MermaidExtract.extract(code).filter((b) => b.range);
+const boardBlocks = (code) => MermaidExtract.extract(code, { dedupe: false }).filter((b) => b.range);
 
 function appendToBoard(tab, diagrams) {
-  const have = new Set(boardBlocks(tab.code).map((b) => norm(b.code)));
-  const fresh = diagrams.filter((d) => !have.has(norm(d.code)));
+  const fresh = diagrams;
   if (!fresh.length) return 0;
   const base = tab.code.replace(/\s+$/, '');
   tab.code = (base ? base + '\n\n' : '') + boardCode(fresh.map((d) => d.code));
@@ -633,8 +632,18 @@ document.addEventListener('cut', () => (lastInternalCopy = Date.now()));
  * Extract diagrams from arbitrary text and open each as a tab.
  * Diagrams that are already open are focused instead of duplicated.
  */
-function importText(text, { strict = false, silent = false, from = 'clipboard' } = {}) {
-  const found = MermaidExtract.extract(text || '', { strict });
+// Text that auto-import already brought in, so pressing ⌘V on the same
+// clipboard right afterwards doesn't add everything a second time
+let lastAutoImport = null;
+
+function importText(text, { strict = false, silent = false, from = 'clipboard', auto = false } = {}) {
+  if (!auto && lastAutoImport && Date.now() - lastAutoImport.at < 120000 && norm(text || '') === lastAutoImport.text) {
+    lastAutoImport = null;
+    if (!silent) toast('Already imported from the clipboard');
+    return 0;
+  }
+  // Keep repeated diagrams: pasting the same one twice means two copies
+  const found = MermaidExtract.extract(text || '', { strict, dedupe: false });
   if (!found.length) {
     if (!silent) toast(text?.trim() ? `No Mermaid diagram found in ${from}` : `The ${from} is empty`);
     return 0;
@@ -643,18 +652,10 @@ function importText(text, { strict = false, silent = false, from = 'clipboard' }
   const board = active()?.stack ? active() : null;
   if (board) {
     const n = appendToBoard(board, found);
-    if (n) toast(`Added ${n} diagram${n > 1 ? 's' : ''} to the board`);
-    else if (!silent) toast('Already on this board');
+    toast(`Added ${n} diagram${n > 1 ? 's' : ''} to the board`);
     return n;
   }
   if (found.length > 1 && state.settings.multi === 'board') {
-    const code = boardCode(found.map((d) => d.code));
-    const existing = state.tabs.find((t) => t.stack && norm(t.code) === norm(code));
-    if (existing) {
-      activateTab(existing.id);
-      if (!silent) toast('Already open');
-      return 0;
-    }
     newBoard(found.map((d) => d.code));
     toast(`Imported ${found.length} diagrams from ${from} as a board`);
     return found.length;
@@ -691,7 +692,9 @@ document.addEventListener('paste', (e) => {
 api.onClipboardChanged((text) => {
   if (!state.settings.watch) return;
   if (Date.now() - lastInternalCopy < 2000) return; // our own copy
-  importText(text, { strict: true, silent: true, from: 'clipboard' });
+  if (importText(text, { strict: true, silent: true, from: 'clipboard', auto: true })) {
+    lastAutoImport = { text: norm(text), at: Date.now() };
+  }
 });
 
 // ---- drag & drop

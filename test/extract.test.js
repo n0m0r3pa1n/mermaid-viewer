@@ -67,4 +67,32 @@ test('markdown write-back preserves surrounding text and indentation', () => {
   assert.deepStrictEqual(extract(out).map((d) => d.code), ['graph LR\n  X-->Y\n\n  Y-->Z', 'pie\n  "b": 2']);
 });
 
+test('repeated diagrams are kept when dedupe is off', () => {
+  const t = '```mermaid\npie\n"a":1\n```\n\n```mermaid\npie\n"a":1\n```';
+  assert.strictEqual(extract(t, { dedupe: false }).length, 2);
+});
+
+test('bare diagrams back to back are split', () => {
+  const t = [
+    'flowchart LR', '    A[Terminal error] --> B[Cancel]', '    B --> C{Error?}', '    C -- No --> D[Report]', '',
+    '', 'flowchart LR', '    commit([Commit]) --> ci[CI build]', '    ci --> tests{Tests pass?}',
+  ].join('\n');
+  const ds = codes(t, { strict: true });
+  assert.strictEqual(ds.length, 2);
+  assert.ok(ds[0].startsWith('flowchart LR\n    A[Terminal error]') && ds[0].endsWith('D[Report]'));
+  assert.ok(ds[1].startsWith('flowchart LR\n    commit'));
+});
+
+test('split without a blank line on unambiguous headers, with front matter', () => {
+  const t = 'graph TD\n  A-->B\nsequenceDiagram\n  A->>B: x\n\n---\ntitle: Pie\n---\npie\n  "a": 1';
+  assert.deepStrictEqual(codes(t), ['graph TD\n  A-->B', 'sequenceDiagram\n  A->>B: x', '---\ntitle: Pie\n---\npie\n  "a": 1']);
+});
+
+test('statements inside a diagram are not mistaken for new diagrams', () => {
+  const block = 'block-beta\ncolumns 3\n\nblock:group1\n  a b\nend';
+  assert.deepStrictEqual(codes(block), [block]);
+  const nested = 'flowchart TD\n  subgraph S\n    graph TD\n  end';
+  assert.strictEqual(codes(nested).length, 1);
+});
+
 console.log(`\n${passed} passed`);

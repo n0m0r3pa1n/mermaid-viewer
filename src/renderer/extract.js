@@ -187,7 +187,7 @@
         continue;
       }
       if (/(`{3,}|~{3,})\s*mermaid/i.test(s)) out.push(...findFences(s).map((r) => ({ code: r.code })));
-      else if (isDiagramStart(firstMeaningfulLine(s))) out.push({ code: trimBlankLines(dedent(s)) });
+      else if (isDiagramStart(firstMeaningfulLine(s))) out.push(...splitDiagrams(trimBlankLines(dedent(s))));
     }
     return out;
   }
@@ -213,15 +213,63 @@
     return '';
   }
 
+  // Diagram headers that never appear as a statement inside another diagram,
+  // so they mark a new diagram even without a blank line before them.
+  const STRONG_HEADER_RE =
+    /^(?:(?:graph|flowchart)\s+(?:TB|TD|BT|RL|LR)\b|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|gitGraph|journey|mindmap|quadrantChart|xychart|sankey|kanban|C4\w+)\b/;
+  // Words that are also statements inside some diagrams (e.g. `block:` in block-beta)
+  const WEAK_HEADER_RE = /^(?:block|requirement|packet|treemap)\b(?!-)/;
+
   /**
-   * Raw (unfenced) diagram. In strict mode the whole text must be a diagram;
+   * Unfenced text may hold several diagrams back to back. Split it where a new
+   * diagram header starts at the outermost indentation level.
+   */
+  function splitDiagrams(text) {
+    const lines = text.split('\n');
+    const indentOf = (l) => l.match(/^[ \t]*/)[0].length;
+    const starts = [];
+    let base = null;
+    for (let i = 0; i < lines.length; i++) {
+      const prevBlank = i === 0 || !lines[i - 1].trim();
+      // A header may be preceded by front matter (--- … ---) and %% directives
+      let j = i;
+      if (prevBlank && lines[i].trim() === '---') {
+        j = i + 1;
+        while (j < lines.length && lines[j].trim() !== '---') j++;
+        j++;
+      }
+      while (j < lines.length && /^\s*%%/.test(lines[j])) j++;
+      if (j >= lines.length || !isDiagramStart(lines[j])) continue;
+      const ind = indentOf(lines[j]);
+      if (base === null) base = ind;
+      if (ind > base) continue;
+      const head = lines[j].trim();
+      const first = !starts.length;
+      if (!first && WEAK_HEADER_RE.test(head)) continue;
+      if (first || prevBlank || (j === i && STRONG_HEADER_RE.test(head))) {
+        // Pull a directly attached %% directive / front matter into this diagram
+        let s = i;
+        while (j === i && s > 0 && /^\s*%%/.test(lines[s - 1])) s--;
+        starts.push(s);
+        i = j;
+      }
+    }
+    if (starts.length <= 1) return [{ code: text }];
+    return starts
+      .map((s, k) => trimBlankLines(dedent(lines.slice(s, starts[k + 1] ?? lines.length).join('\n'))))
+      .filter((code) => code.trim())
+      .map((code) => ({ code }));
+  }
+
+  /**
+   * Raw (unfenced) diagram(s). In strict mode the whole text must be a diagram;
    * otherwise we look for the first line that starts a diagram and take the
    * rest, which handles a log line or two before it.
    */
   function findRaw(text, strict) {
     const lines = stripDecorations(text.split('\n'));
     const cleaned = trimBlankLines(dedent(lines.join('\n')));
-    if (isDiagramStart(firstMeaningfulLine(cleaned))) return [{ code: cleaned }];
+    if (isDiagramStart(firstMeaningfulLine(cleaned))) return splitDiagrams(cleaned);
     if (strict) return [];
 
     const all = cleaned.split('\n');
@@ -231,7 +279,7 @@
         let start = i;
         while (start > 0 && /^\s*%%/.test(all[start - 1])) start--;
         const code = trimBlankLines(dedent(all.slice(start).join('\n')));
-        return code ? [{ code }] : [];
+        return code ? splitDiagrams(code) : [];
       }
     }
     return [];
@@ -239,7 +287,9 @@
 
   /**
    * @param {string} text
-   * @param {{strict?: boolean}} opts strict: only accept unambiguous diagrams (used for clipboard watching)
+   * @param {{strict?: boolean, dedupe?: boolean}} opts
+   *   strict: only accept unambiguous diagrams (used for clipboard watching)
+   *   dedupe: drop repeated identical diagrams (default true; boards keep repeats)
    * @returns {{code: string, title: string, range?: {start:number,end:number,indent:string}}[]}
    */
   function extract(text, opts = {}) {
@@ -254,6 +304,7 @@
     const seen = new Set();
     return found
       .filter((d) => {
+        if (opts.dedupe === false) return true;
         const key = d.code.trim();
         if (seen.has(key)) return false;
         seen.add(key);
