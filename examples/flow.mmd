@@ -1,0 +1,10 @@
+---
+title: Deploy pipeline
+---
+flowchart LR
+    commit([Commit]) --> ci[CI build]
+    ci --> tests{Tests pass?}
+    tests -->|yes| stage[Deploy to staging]
+    tests -->|no| fix[Fix it]
+    fix --> commit
+    stage --> prod[Deploy to production]

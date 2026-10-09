@@ -1,0 +1,11 @@
+2026-10-09T14:02:11.501Z INFO  [agent] Task started: describe auth flow
+2026-10-09T14:02:13.877Z DEBUG [agent] tool_result {"ok":true}
+2026-10-09T14:02:15.020Z INFO  [agent] Assistant reply:
+2026-10-09T14:02:15.020Z INFO  [agent] Here is how login works:
+2026-10-09T14:02:15.020Z INFO  [agent] ```mermaid
+2026-10-09T14:02:15.020Z INFO  [agent] flowchart TD
+2026-10-09T14:02:15.020Z INFO  [agent]     A[Login form] --> B{Valid credentials?}
+2026-10-09T14:02:15.020Z INFO  [agent]     B -->|yes| C[Issue session token]
+2026-10-09T14:02:15.020Z INFO  [agent]     B -->|no| D[Show error]
+2026-10-09T14:02:15.020Z INFO  [agent] ```
+2026-10-09T14:02:15.311Z INFO  [agent] Task finished in 3.8s

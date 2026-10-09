@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:"
+    />
+    <title>Mermaid Viewer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header id="toolbar">
+      <div class="group">
+        <button id="btn-new" title="New diagram (⌘/Ctrl+N)">New</button>
+        <button id="btn-open" title="Open .mmd / .mermaid / .md (⌘/Ctrl+O)">Open</button>
+        <button id="btn-save" title="Save (⌘/Ctrl+S)">Save</button>
+        <button id="btn-paste" class="primary" title="Import diagrams from clipboard (⌘/Ctrl+Shift+V)">Paste</button>
+      </div>
+      <div class="group">
+        <label class="toggle" title="Automatically open Mermaid diagrams you copy anywhere">
+          <input type="checkbox" id="chk-watch" checked />
+          <span>Auto-import clipboard</span>
+        </label>
+        <select id="sel-multi" title="When pasted text contains several diagrams">
+          <option value="board">Multiple → one board</option>
+          <option value="tabs">Multiple → separate tabs</option>
+        </select>
+        <button id="btn-board" title="New empty board: diagrams you paste are added to it (⌘/Ctrl+Shift+N)">New board</button>
+      </div>
+      <div class="spacer"></div>
+      <div class="group">
+        <select id="sel-theme" title="Diagram theme">
+          <option value="auto">Theme: Auto</option>
+          <option value="default">Default</option>
+          <option value="neutral">Neutral</option>
+          <option value="dark">Dark</option>
+          <option value="forest">Forest</option>
+          <option value="base">Base</option>
+        </select>
+        <button id="btn-editor" title="Toggle editor (⌘/Ctrl+B)">Editor</button>
+        <button id="btn-layout" title="Side-by-side / stacked (⌘/Ctrl+L)">Layout</button>
+        <button id="btn-present" class="primary" title="Present full screen, one diagram per slide (F5)">Present</button>
+      </div>
+      <div class="group">
+        <button id="btn-export-svg" title="Export SVG (⌘/Ctrl+E)">SVG</button>
+        <button id="btn-export-png" title="Export PNG (⌘/Ctrl+Shift+E)">PNG</button>
+        <button id="btn-copy-png" title="Copy image to clipboard (⌘/Ctrl+Shift+C)">Copy</button>
+      </div>
+    </header>
+
+    <nav id="tabs"></nav>
+
+    <main id="workspace" class="side">
+      <section id="editor-pane">
+        <div class="editor-wrap">
+          <pre id="gutter" aria-hidden="true"></pre>
+          <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Type Mermaid here…"></textarea>
+        </div>
+        <div id="error" hidden></div>
+      </section>
+      <div id="splitter"></div>
+      <section id="preview-pane">
+        <div id="viewport">
+          <div id="canvas"></div>
+        </div>
+        <div id="zoom-controls">
+          <button id="btn-zoom-out" title="Zoom out (⌘/Ctrl+-)">−</button>
+          <button id="btn-zoom-label" title="Reset to 100% (⌘/Ctrl+0)">100%</button>
+          <button id="btn-zoom-in" title="Zoom in (⌘/Ctrl+=)">+</button>
+          <button id="btn-zoom-fit" title="Fit (⌘/Ctrl+9, or double-click)">Fit</button>
+        </div>
+        <div id="hint">Scroll / drag to pan · ⌘/Ctrl + scroll or pinch to zoom · double-click to fit</div>
+      </section>
+    </main>
+
+    <div id="empty" hidden>
+      <div class="empty-card">
+        <h1>Mermaid Viewer</h1>
+        <p>Copy any text containing a Mermaid diagram — a chat answer, a terminal log, a markdown file — and it opens here automatically.</p>
+        <div class="empty-actions">
+          <button id="empty-paste" class="primary">Paste from clipboard</button>
+          <button id="empty-new">New diagram</button>
+          <button id="empty-open">Open file…</button>
+          <button id="empty-sample">Try a sample</button>
+        </div>
+        <p class="muted">Text with several diagrams opens as a <b>board</b> with the diagrams stacked one above the other. Press <b>Present</b> (F5) to show them full screen, one per slide.</p>
+        <p class="muted">Supports <code>.mmd</code>, <code>.mermaid</code> and <code>.md</code> files (every <code>```mermaid</code> block opens as a tab). You can also drop files or text onto this window.</p>
+      </div>
+    </div>
+
+    <div id="present" hidden>
+      <div id="present-stage"></div>
+      <button id="present-prev" class="present-nav" title="Previous (←)">‹</button>
+      <button id="present-next" class="present-nav" title="Next (→ / Space)">›</button>
+      <button id="present-close" title="Exit (Esc)">×</button>
+      <div id="present-bar"><span id="present-title"></span><span id="present-count"></span></div>
+    </div>
+
+    <div id="toast" hidden></div>
+    <div id="drop-overlay" hidden><div>Drop files or text</div></div>
+
+    <script src="vendor/mermaid.min.js"></script>
+    <script src="extract.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

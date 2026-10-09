@@ -1,0 +1,137 @@
+{
+  "name": "mermaid-viewer",
+  "productName": "Mermaid Viewer",
+  "version": "1.0.0",
+  "description": "Cross-platform desktop viewer and editor for Mermaid diagrams. Paste any log or chat output and it finds the diagrams.",
+  "main": "src/main.js",
+  "author": {
+    "name": "Georgi Mirchev",
+    "email": "n0m0r3pa1n@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "node scripts/vendor.js",
+    "start": "node scripts/vendor.js && electron .",
+    "test": "node test/extract.test.js",
+    "dist": "node scripts/vendor.js && electron-builder",
+    "dist:mac": "node scripts/vendor.js && electron-builder --mac",
+    "dist:win": "node scripts/vendor.js && electron-builder --win",
+    "dist:linux": "node scripts/vendor.js && electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "mermaid": "^11.17.2"
+  },
+  "build": {
+    "appId": "com.mermaidviewer.app",
+    "productName": "Mermaid Viewer",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "mmd",
+          "mermaid"
+        ],
+        "name": "Mermaid Diagram",
+        "description": "Mermaid Diagram",
+        "role": "Editor",
+        "mimeType": "text/vnd.mermaid"
+      },
+      {
+        "ext": [
+          "md",
+          "markdown"
+        ],
+        "name": "Markdown",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "identity": "-",
+      "hardenedRuntime": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "mermaid-viewer-${version}-windows-setup-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Development",
+      "maintainer": "Georgi Mirchev <n0m0r3pa1n@users.noreply.github.com>"
+    },
+    "artifactName": "mermaid-viewer-${version}-${os}-${arch}.${ext}",
+    "publish": null,
+    "dmg": {
+      "artifactName": "mermaid-viewer-${version}-mac-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "mermaid-viewer-${version}-windows-portable-${arch}.${ext}"
+    },
+    "appImage": {
+      "artifactName": "mermaid-viewer-${version}-linux-${arch}.${ext}"
+    },
+    "deb": {
+      "artifactName": "mermaid-viewer-${version}-linux-${arch}.${ext}"
+    }
+  },
+  "homepage": "https://github.com/n0m0r3pa1n/mermaid-viewer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/n0m0r3pa1n/mermaid-viewer.git"
+  }
+}
