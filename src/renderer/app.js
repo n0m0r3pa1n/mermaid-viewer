@@ -168,6 +168,34 @@ function scrollBoardToEnd(tab) {
   }
 }
 
+/**
+ * A single-diagram tab whose text actually holds several diagrams (pasted
+ * into the editor, or saved by an older version) becomes a board. Files are
+ * left alone: a .mmd file must stay one diagram on disk.
+ */
+function splitIntoBoard(tab) {
+  if (!tab || tab.stack || tab.path || tab.doc) return false;
+  const found = MermaidExtract.extract(tab.code, { dedupe: false });
+  if (found.length < 2) return false;
+  tab.stack = true;
+  tab.title = 'Board';
+  tab.code = boardCode(found.map((d) => d.code));
+  tab.savedCode = tab.code;
+  tab.svg = null;
+  tab.parts = null;
+  tab.view = null;
+  tab.error = null;
+  if (tab.id === state.activeId) {
+    els.editor.value = tab.code;
+    updateGutter();
+    updateTitle();
+  }
+  renderTabs();
+  persist();
+  toast(`Found ${found.length} diagrams: showing them as a board`);
+  return true;
+}
+
 function newBoard(codes = []) {
   const tab = addTab(makeTab({ stack: true, title: 'Board', code: codes.length ? boardCode(codes) : '' }));
   if (!codes.length) toast('Empty board: paste diagrams (⌘/Ctrl+V) and they stack up here');
@@ -220,6 +248,7 @@ function activateTab(id) {
   if (prev) prev.editorScroll = { top: els.editor.scrollTop, left: els.editor.scrollLeft };
   state.activeId = id;
   const tab = active();
+  splitIntoBoard(tab);
   renderTabs();
   updateEmpty();
   if (!tab) return;
@@ -601,6 +630,17 @@ els.editor.addEventListener('input', () => {
 
 els.editor.addEventListener('scroll', () => {
   els.gutter.scrollTop = els.editor.scrollTop;
+});
+
+els.editor.addEventListener('paste', () => {
+  // After the pasted text lands: several diagrams in a single tab → board
+  setTimeout(() => {
+    const tab = active();
+    if (splitIntoBoard(tab)) {
+      els.editor.selectionStart = els.editor.selectionEnd = els.editor.value.length;
+      renderActive();
+    }
+  }, 0);
 });
 
 els.editor.addEventListener('keydown', (e) => {
