@@ -1,5 +1,13 @@
 Mermaid Viewer is a desktop app for previewing and editing Mermaid diagrams. Paste any text that contains a diagram (a chat answer, a terminal log, a Markdown file) and it renders right away.
 
+## What's new in 1.0.1
+
+- **Plain diagrams pasted together now work.** Several diagrams pasted without ```` ```mermaid ```` markers (for example two `flowchart LR` blocks) are split into separate diagrams instead of failing as one.
+- **Boards no longer depend on ```` ```mermaid ```` markers.** A new board holds plain diagrams, and you can add or remove the markers in the editor without breaking anything.
+- **Repeated diagrams are kept.** Pasting the same diagram twice shows it twice. Pressing ⌘/Ctrl+V right after auto-import still won't add it again.
+- **Older tabs are fixed when opened.** A single tab that holds several diagrams, including tabs saved by 1.0.0, turns into a board.
+- **macOS: ⌘Q now quits the app.** Before, it could close the window and leave the app running in the background.
+
 ## Download
 
 | Platform | File |

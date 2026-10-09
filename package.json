@@ -1,7 +1,7 @@
 {
   "name": "mermaid-viewer",
   "productName": "Mermaid Viewer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Cross-platform desktop viewer and editor for Mermaid diagrams. Paste any log or chat output and it finds the diagrams.",
   "main": "src/main.js",
   "author": {
