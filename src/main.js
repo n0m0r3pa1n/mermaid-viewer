@@ -249,7 +249,7 @@ ipcMain.handle('read-file', async (_e, filePath) => {
   }
 });
 
-ipcMain.handle('save-file', async (_e, { path: filePath, content, defaultName, wrapMarkdown }) => {
+ipcMain.handle('save-file', async (_e, { path: filePath, content, defaultName, wrapMarkdown, markdownContent }) => {
   let target = filePath;
   if (!target) {
     const res = await dialog.showSaveDialog(win, {
@@ -259,7 +259,10 @@ ipcMain.handle('save-file', async (_e, { path: filePath, content, defaultName, w
     if (res.canceled) return null;
     target = res.filePath;
   }
-  if (wrapMarkdown && /\.(md|markdown)$/i.test(target)) content = '```mermaid\n' + content + '```\n';
+  if (/\.(md|markdown)$/i.test(target)) {
+    if (markdownContent != null) content = markdownContent;
+    else if (wrapMarkdown) content = '```mermaid\n' + content + '```\n';
+  }
   await fs.writeFile(target, content, 'utf8');
   app.addRecentDocument(target);
   return target;

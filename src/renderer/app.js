@@ -137,15 +137,38 @@ const errorText = (err) => String(err?.message || err).trim();
 // A board is a tab whose code is Markdown with several ```mermaid blocks;
 // the preview shows all of them stacked vertically.
 
+// Board text is either plain diagrams one after another (separated by blank
+// lines) or Markdown with ```mermaid blocks (e.g. an opened .md file).
 const fence = (code) => '```mermaid\n' + code.replace(/\s+$/, '') + '\n```';
-const boardCode = (codes) => codes.map(fence).join('\n\n') + '\n';
-const boardBlocks = (code) => MermaidExtract.extract(code, { dedupe: false }).filter((b) => b.range);
+const hasFences = (code) => /^[ \t]*(`{3,}|~{3,})[ \t]*mermaid/im.test(code);
+const plainBoardCode = (codes) => codes.map((c) => c.replace(/\s+$/, '')).join('\n\n\n') + '\n';
+const fencedBoardCode = (codes) => codes.map(fence).join('\n\n') + '\n';
+const boardCode = plainBoardCode;
+const lineAt = (code, offset) => code.slice(0, offset).split('\n').length;
+
+/** The diagrams on a board, each with the line it starts on (1-based). */
+function boardBlocks(code) {
+  if (hasFences(code)) {
+    return MermaidExtract.extract(code, { dedupe: false })
+      .filter((b) => b.range)
+      .map((b) => ({ ...b, line: lineAt(code, b.range.start) }));
+  }
+  let from = 0;
+  return MermaidExtract.extract(code, { dedupe: false }).map((d) => {
+    const first = d.code.split('\n')[0].trim();
+    let at = code.indexOf(first, from);
+    if (at < 0) at = from;
+    from = at + first.length;
+    return { ...d, line: lineAt(code, at) };
+  });
+}
 
 function appendToBoard(tab, diagrams) {
   const fresh = diagrams;
   if (!fresh.length) return 0;
   const base = tab.code.replace(/\s+$/, '');
-  tab.code = (base ? base + '\n\n' : '') + boardCode(fresh.map((d) => d.code));
+  const add = fresh.map((d) => d.code);
+  tab.code = hasFences(base) ? (base ? base + '\n\n' : '') + fencedBoardCode(add) : (base ? base + '\n\n\n' : '') + plainBoardCode(add);
   if (tab.id === state.activeId) {
     els.editor.value = tab.code;
     els.editor.scrollTop = els.editor.scrollHeight;
@@ -396,7 +419,7 @@ async function renderBoard(tab) {
   const code = tab.code;
   const parts = [];
   for (const b of boardBlocks(code)) {
-    const line = code.slice(0, b.range.start).split('\n').length; // first line of the diagram
+    const line = b.line;
     try {
       parts.push({ title: b.title, code: b.code, line, svg: await renderCached(b.code) });
     } catch (err) {
@@ -861,6 +884,8 @@ async function saveTab(tab = active(), saveAs = false) {
       content,
       defaultName: tab.path ? basename(tab.path) : (slug || 'diagram') + (tab.stack ? '.md' : '.mmd'),
       wrapMarkdown: !tab.stack,
+      // A plain board saved as Markdown gets ```mermaid blocks so it stays valid Markdown
+      markdownContent: tab.stack && !hasFences(tab.code) ? fencedBoardCode(boardBlocks(tab.code).map((b) => b.code)) : undefined,
     });
     if (!target) return false;
     if (!tab.stack && /\.(md|markdown)$/i.test(target)) {
